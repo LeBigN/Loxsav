@@ -378,11 +378,9 @@ function render(){
   // Photos (annexe)
   const pc = el('section',{class:'card'}, el('h2','Photos (annexe)'));
   const camInput = el('input',{type:'file', accept:'image/*', capture:'environment', style:'display:none', onchange:e=>{ handleFiles(e.target.files); e.target.value=''; }});
-  const galInput = el('input',{type:'file', accept:'image/*', multiple:'multiple', style:'display:none', onchange:e=>{ handleFiles(e.target.files); e.target.value=''; }});
   const actions = el('div',{class:'photo-actions'},
     el('button',{class:'btn-photo', onclick:()=>camInput.click()},'📷 Prendre une photo'),
-    el('button',{class:'btn-photo ghost', onclick:()=>galInput.click()},'🖼 Galerie'),
-    camInput, galInput
+    camInput
   );
   pc.append(actions);
   if(state.photos.length){
@@ -508,23 +506,34 @@ async function generateRapportPDF(){
   if(state.sigTech){ try{ doc.addImage(state.sigTech,'PNG', rightX+10, sy+18, boxW-20, boxH-26);}catch(e){} }
   if(state.nomTech){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.nomTech), rightX+8, sy+boxH+14); }
 
-  // Annexes photos (une par page)
+  // Annexe photos — empilées à la suite (nouvelle page si débordement)
   if(state.photos && state.photos.length){
-    const n = state.photos.length;
-    state.photos.forEach((p,i)=>{
-      doc.addPage();
-      doc.setFillColor.apply(doc, REDD); doc.roundedRect(M, 40, 172, 28, 8, 8, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255);
-      doc.text('ANNEXE PHOTO ' + (i+1) + ' / ' + n, M+86, 58, {align:'center'});
-      if(state.client){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.client), W-M, 58, {align:'right'}); }
-      const availW = W-2*M, top = 92, bottom = H-48, availH = bottom-top;
-      let iw = p.w||availW, ih = p.h||availH;
-      const s = Math.min(availW/iw, availH/ih);
-      const dw = iw*s, dh = ih*s;
-      const ix = M + (availW-dw)/2, iy = top;
-      try{ doc.addImage(p.data, 'JPEG', ix, iy, dw, dh); }catch(e){}
+    const availW = W-2*M, bottomLimit = H-46, maxH = 300;
+    doc.addPage();
+    doc.setFillColor.apply(doc, REDD); doc.roundedRect(M, 40, 150, 28, 8, 8, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255);
+    doc.text('ANNEXE PHOTOS', M+75, 58, {align:'center'});
+    if(state.client){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.client), W-M, 58, {align:'right'}); }
+    let py = 92;
+    state.photos.forEach((p,idx)=>{
+      let iw = p.w||availW, ih = p.h||maxH;
+      let dw = availW, dh = ih*(dw/iw);
+      if(dh > maxH){ dh = maxH; dw = iw*(dh/ih); }
+      const blockH = dh + 24;
+      if(py + blockH > bottomLimit){
+        doc.addPage();
+        doc.setFillColor.apply(doc, REDD); doc.roundedRect(M, 40, 182, 28, 8, 8, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255);
+        doc.text('ANNEXE PHOTOS (suite)', M+91, 58, {align:'center'});
+        py = 92;
+      }
+      const ix = M + (availW-dw)/2;
+      try{ doc.addImage(p.data, 'JPEG', ix, py, dw, dh); }catch(e){}
       doc.setDrawColor.apply(doc, WARMB); doc.setLineWidth(0.9);
-      doc.roundedRect(ix-4, iy-4, dw+8, dh+8, 6, 6, 'S');
+      doc.roundedRect(ix-3, py-3, dw+6, dh+6, 6, 6, 'S');
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor.apply(doc, SUB);
+      doc.text('Photo ' + (idx+1), M, py+dh+13);
+      py += dh + 28;
     });
   }
 

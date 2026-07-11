@@ -1,4 +1,4 @@
-const CACHE = 'loxsav-v2';
+const CACHE = 'loxsav-v3';
 const ASSETS = [
   './',
   './index.html',
