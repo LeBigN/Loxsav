@@ -71,11 +71,40 @@ input::-webkit-date-and-time-value{ text-align:left; }
 .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 12px; align-items:start;}
 .info-grid .field{margin-bottom:0; min-width:0;}
 
+/* Ligne label + bouton géoloc */
+.label-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;}
+.label-row .lbl{font-size:12.5px; font-weight:600; color:var(--sub);}
+.geo-btn{
+  display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+  background:#fff; color:var(--red); border:1px solid var(--line); border-radius:9px;
+  padding:5px 9px; font-size:11.5px; font-weight:700; line-height:1;
+}
+.geo-btn:active{background:var(--red-tint);}
+.geo-btn svg{display:block;}
+.geo-btn.loading{opacity:.6; pointer-events:none;}
+
+/* Photos */
+.photo-actions{display:flex; gap:8px; flex-wrap:wrap;}
+.btn-photo{
+  flex:1; min-width:135px; cursor:pointer; background:var(--red); color:#fff; border:none;
+  border-radius:10px; padding:11px; font-size:13.5px; font-weight:700;
+}
+.btn-photo.ghost{background:#EEF0F3; color:var(--red-dark);}
+.photo-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+.photo-thumb{position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:#F0F1F4;}
+.photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+.photo-del{
+  position:absolute; top:4px; right:4px; width:24px; height:24px; border-radius:50%;
+  border:none; background:rgba(17,24,39,.72); color:#fff; font-size:12px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* Signatures */
 .sig-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 .sig-cell{border:1px solid var(--line); border-radius:10px; padding:10px;}
 .sig-cell .sig-label{font-size:11.5px; font-weight:700; color:var(--sub); margin-bottom:8px;}
-.sig-canvas{width:100%; height:130px; border:1.5px dashed var(--line); border-radius:8px; background:#fff; touch-action:none; display:block;}
-.sig-clear{margin-top:6px; background:#EEF0F3; color:var(--red-dark); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:600;}
+.sig-canvas{width:100%; height:130px; border:1.5px dashed var(--line); border-radius:8px; background:#fff; touch-action:none; display:block; -ms-touch-action:none;}
+.sig-clear{margin-top:6px; cursor:pointer; background:#EEF0F3; color:var(--red-dark); border:none; border-radius:8px; padding:7px 10px; font-size:12px; font-weight:600;}
 @media (max-width:560px){ .sig-grid{grid-template-columns:1fr;} }
 
 .sticky-footer{
@@ -84,7 +113,7 @@ input::-webkit-date-and-time-value{ text-align:left; }
   box-shadow:0 -2px 10px rgba(0,0,0,.06); max-width:680px; margin:0 auto;
 }
 .btn{
-  flex:1; padding:13px; border:none; border-radius:10px; font-size:14.5px; font-weight:700;
+  flex:1; cursor:pointer; padding:13px; border:none; border-radius:10px; font-size:14.5px; font-weight:700;
   display:flex; align-items:center; justify-content:center; gap:6px;
 }
 .btn-primary{background:var(--red); color:#fff;}
@@ -112,7 +141,7 @@ input::-webkit-date-and-time-value{ text-align:left; }
 .modal-card p{margin:0 0 18px; font-size:13.5px; color:var(--sub); line-height:1.5;}
 .modal-actions{display:flex; gap:10px;}
 .modal-actions button{
-  flex:1; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:700;
+  flex:1; cursor:pointer; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:700;
 }
 .modal-actions .cancel{background:#EEF0F3; color:var(--ink);}
 .modal-actions .danger{background:var(--red); color:#fff;}
@@ -164,6 +193,7 @@ function el(tag, attrs={}, ...children){
   }
   Object.entries(attrs).forEach(([k,v])=>{
     if(k==='class') e.className=v;
+    else if(k==='html') e.innerHTML=v;
     else if(k.startsWith('on')) e.addEventListener(k.slice(2), v);
     else if(v!==undefined && v!==null) e.setAttribute(k,v);
   });
@@ -179,15 +209,18 @@ function inp(type, value, oninput, placeholder){
   return el('input', attrs);
 }
 
+/* ===== Icône géoloc (style "me localiser" Google Maps) ===== */
+const GEO_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.3"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="12" y1="1.6" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.4"/><line x1="1.6" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.4" y2="12"/></svg>';
+
 /* ===== Constantes (reprises de Loxcheck) ===== */
-const SOUS_TRAITANTS = ['CRPS','TCPP','TERMICLIM','CC BAT','EMS','CMTG','MOKRANE'];
+const SOUS_TRAITANTS = ['CRPS','TCPP','TERMICLIM','CC BAT','EMS','JM CARTIER'];
 
 /* ===== État ===== */
 const STORAGE_KEY = 'loxsav-draft';
 const state = {
-  client:'', adresse:'', soustraitant:'', soustraitantAutre:'',
+  client:'', adresse:'', km:'', soustraitant:'', soustraitantAutre:'',
   dateInter:'', affaire:'', observations:'', nomTech:'',
-  sigClient:null, sigTech:null
+  photos:[], sigClient:null, sigTech:null, lat:null, lng:null
 };
 
 /* ===== Helpers ===== */
@@ -202,14 +235,66 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
 }
-function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ /* quota (photos volumineuses) : session OK */ } }
 function load(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(raw){ try{ Object.assign(state, JSON.parse(raw)); }catch(e){} }
+  if(!Array.isArray(state.photos)) state.photos = [];
   if(!state.dateInter) state.dateInter = todayISO();
 }
 
-/* ===== Signature pads ===== */
+/* ===== Géolocalisation → adresse auto (reverse geocoding OSM) ===== */
+function geolocate(btn){
+  if(!navigator.geolocation){ showToast('Géolocalisation non disponible'); return; }
+  if(btn) btn.classList.add('loading');
+  showToast('Localisation en cours…');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    state.lat = lat; state.lng = lon;
+    let addr = lat.toFixed(5)+', '+lon.toFixed(5);
+    try{
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat='+lat+'&lon='+lon, {headers:{'Accept':'application/json'}});
+      const d = await r.json();
+      const a = d.address || {};
+      const rue = [a.house_number, a.road].filter(Boolean).join(' ');
+      const ville = [a.postcode, a.city||a.town||a.village||a.municipality].filter(Boolean).join(' ');
+      const line = [rue, ville].filter(Boolean).join(', ');
+      if(line) addr = line; else if(d.display_name) addr = d.display_name;
+    }catch(e){ /* hors ligne : on garde les coordonnées */ }
+    state.adresse = addr; save(); render(); showToast('Adresse renseignée ✓');
+  }, err=>{
+    if(btn) btn.classList.remove('loading');
+    showToast(err.code===1 ? 'Localisation refusée' : 'Localisation indisponible');
+  }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
+}
+
+/* ===== Photos (compression + annexe) ===== */
+function compressImage(file, maxDim=1400, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const scale = Math.min(1, maxDim/Math.max(w,h));
+      w = Math.round(w*scale); h = Math.round(h*scale);
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      resolve({ data:c.toDataURL('image/jpeg', quality), w, h });
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('img')); };
+    img.src = url;
+  });
+}
+async function handleFiles(fileList){
+  const files = [...(fileList||[])].filter(f=>f && f.type && f.type.startsWith('image/'));
+  if(!files.length) return;
+  showToast('Ajout photo…');
+  for(const f of files){ try{ state.photos.push(await compressImage(f)); }catch(e){} }
+  save(); render(); showToast(state.photos.length+' photo(s) en annexe');
+}
+
+/* ===== Signature (souris + tactile) ===== */
 const pads = {};
 function initPad(canvas, key){
   const ctx = canvas.getContext('2d');
@@ -217,6 +302,7 @@ function initPad(canvas, key){
   function resize(){
     const ratio = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    if(!rect.width) return;
     const prev = hasInk ? canvas.toDataURL() : (state[key]||null);
     canvas.width = Math.round(rect.width*ratio);
     canvas.height = Math.round(rect.height*ratio);
@@ -224,16 +310,25 @@ function initPad(canvas, key){
     ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111827';
     if(prev){ const img=new Image(); img.onload=()=>{ ctx.drawImage(img,0,0,rect.width,rect.height); }; img.src=prev; hasInk=true; }
   }
-  function pos(e){ const r=canvas.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return {x:p.clientX-r.left, y:p.clientY-r.top}; }
-  function start(e){ e.preventDefault(); drawing=true; last=pos(e); }
-  function move(e){ if(!drawing) return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; hasInk=true; }
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+    return { x:t.clientX-r.left, y:t.clientY-r.top };
+  }
+  function start(e){ e.preventDefault(); drawing=true; last=getPos(e); }
+  function move(e){ if(!drawing) return; e.preventDefault(); const p=getPos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; hasInk=true; }
   function end(){ if(drawing){ drawing=false; state[key]=canvas.toDataURL('image/png'); save(); } }
-  canvas.addEventListener('pointerdown',start);
-  canvas.addEventListener('pointermove',move);
-  canvas.addEventListener('pointerup',end);
-  canvas.addEventListener('pointerleave',end);
-  setTimeout(resize,30);
-  window.addEventListener('resize',()=>setTimeout(resize,60));
+  // Souris
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  // Tactile (le toucher pour signer)
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', end, {passive:false});
+  canvas.addEventListener('touchcancel', end, {passive:false});
+  setTimeout(resize, 30);
+  window.addEventListener('resize', ()=>setTimeout(resize, 60));
   pads[key] = { clear:()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); hasInk=false; state[key]=null; save(); } };
 }
 
@@ -245,8 +340,20 @@ function render(){
   // Informations
   const info = el('section',{class:'card'}, el('h2','Informations'));
   info.append(field('Client', inp('text', state.client, v=>{state.client=v; save();}, 'Nom du client')));
-  info.append(field("Adresse d'intervention", inp('text', state.adresse, v=>{state.adresse=v; save();}, 'Adresse du site')));
 
+  // Adresse + bouton géoloc
+  const geoBtn = el('button',{class:'geo-btn', title:'Renseigner via ma position', onclick:e=>geolocate(e.currentTarget)},
+                    el('span',{html:GEO_SVG}), 'Localiser');
+  const addrRow = el('div',{class:'label-row'}, el('span',{class:'lbl'}, "Adresse d'intervention"), geoBtn);
+  const addrInput = inp('text', state.adresse, v=>{state.adresse=v; save();}, "Adresse du site (ou géoloc.)");
+  info.append(el('div',{class:'field'}, addrRow, addrInput));
+
+  // Km
+  const kmInput = inp('text', state.km, v=>{ state.km=v.replace(/[^0-9.,]/g,''); save(); }, 'Ex : 45');
+  kmInput.setAttribute('inputmode','decimal');
+  info.append(field('Km parcourus', kmInput));
+
+  // Sous-traitant
   const sel = el('select',{onchange:e=>{ state.soustraitant=e.target.value; save(); render(); }});
   sel.append(el('option',{value:''},'— Sous-traitant —'));
   SOUS_TRAITANTS.forEach(s=> sel.append(el('option', state.soustraitant===s?{value:s,selected:'selected'}:{value:s}, s)));
@@ -267,6 +374,30 @@ function render(){
   const ta = el('textarea',{placeholder:"Décrire l'intervention, les constats, les actions réalisées, les réserves…", oninput:e=>{ state.observations=e.target.value; save(); }}, state.observations||'');
   obs.append(el('div',{class:'field'}, ta));
   root.append(obs);
+
+  // Photos (annexe)
+  const pc = el('section',{class:'card'}, el('h2','Photos (annexe)'));
+  const camInput = el('input',{type:'file', accept:'image/*', capture:'environment', style:'display:none', onchange:e=>{ handleFiles(e.target.files); e.target.value=''; }});
+  const galInput = el('input',{type:'file', accept:'image/*', multiple:'multiple', style:'display:none', onchange:e=>{ handleFiles(e.target.files); e.target.value=''; }});
+  const actions = el('div',{class:'photo-actions'},
+    el('button',{class:'btn-photo', onclick:()=>camInput.click()},'📷 Prendre une photo'),
+    el('button',{class:'btn-photo ghost', onclick:()=>galInput.click()},'🖼 Galerie'),
+    camInput, galInput
+  );
+  pc.append(actions);
+  if(state.photos.length){
+    const g = el('div',{class:'photo-grid'});
+    state.photos.forEach((p,i)=>{
+      g.append(el('div',{class:'photo-thumb'},
+        el('img',{src:p.data, alt:'photo '+(i+1)}),
+        el('button',{class:'photo-del', title:'Supprimer', onclick:()=>{ state.photos.splice(i,1); save(); render(); }},'✕')
+      ));
+    });
+    pc.append(g);
+  }else{
+    pc.append(el('p',{class:'hint', style:'margin:10px 0 0;'},'Aucune photo. Les photos ajoutées seront jointes en annexe du PDF (une par page).'));
+  }
+  root.append(pc);
 
   // Signatures
   const sig = el('section',{class:'card'}, el('h2','Signatures'));
@@ -318,33 +449,33 @@ async function generateRapportPDF(){
   doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(255);
   doc.text('RAPPORT SAV', W-M-75, 61, {align:'center'});
 
-  // Titre centré
-  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor.apply(doc, INK);
-  doc.text("RAPPORT D'INTERVENTION", W/2, 108, {align:'center'});
-
-  // Tableau infos
+  // Tableau infos (cadre arrondi, uniforme comme les autres blocs)
+  const kmTxt = state.km ? (String(state.km).replace('.',',')+' km') : '';
   const rows = [
     ['Client', state.client||''],
     ["Adresse d'intervention", state.adresse||''],
+    ['Km parcourus', kmTxt],
     ['Sous-traitant', soustraitantValue()],
     ["Date d'intervention", frDate(state.dateInter)],
     ['N° affaire / contrat', state.affaire||'']
   ];
-  let y = 128;
-  const labelW = 160, rh = 24, tW = W-2*M, valX = M+labelW;
+  const rh = 24, nR = rows.length, tW = W-2*M, labelW = 160, valX = M+labelW, rad = 8;
+  const tX = M, tY = 100, tH = nR*rh;
+  doc.setFillColor.apply(doc, WARMF); doc.setDrawColor.apply(doc, WARMB); doc.setLineWidth(0.9);
+  doc.roundedRect(tX, tY, tW, tH, rad, rad, 'FD');
+  doc.setDrawColor.apply(doc, WARMB); doc.setLineWidth(0.7);
+  doc.line(valX, tY+2, valX, tY+tH-2);
+  for(let i=1;i<nR;i++){ doc.line(tX+2, tY+i*rh, tX+tW-2, tY+i*rh); }
   doc.setFontSize(10);
   rows.forEach((r,i)=>{
-    const ry = y + i*rh;
-    doc.setDrawColor.apply(doc, WARMB); doc.setLineWidth(0.8);
-    doc.setFillColor.apply(doc, WARMF); doc.rect(M, ry, labelW, rh, 'FD');
-    doc.setFillColor(255,255,255); doc.rect(valX, ry, tW-labelW, rh, 'FD');
+    const cy = tY + i*rh + rh/2 + 3.3;
     doc.setFont('helvetica','bold'); doc.setTextColor.apply(doc, REDD);
-    doc.text(r[0], M+8, ry+rh/2+3.5);
+    doc.text(r[0], tX+10, cy);
     doc.setFont('helvetica','normal'); doc.setTextColor.apply(doc, INK);
-    const v = doc.splitTextToSize(String(r[1]), tW-labelW-16);
-    doc.text(v.length?v[0]:'', valX+8, ry+rh/2+3.5);
+    const v = doc.splitTextToSize(String(r[1]), tW-labelW-18);
+    doc.text(v.length?v[0]:'', valX+8, cy);
   });
-  y += rows.length*rh + 22;
+  let y = tY + tH + 22;
 
   // Observations
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor.apply(doc, REDD);
@@ -357,7 +488,7 @@ async function generateRapportPDF(){
   const lh = 14.5;
   const maxLines = Math.floor((obsBottom-obsTop-24)/lh);
   let obsLines = doc.splitTextToSize(state.observations||'', W-2*M-20);
-  if(obsLines.length > maxLines){ obsLines = obsLines.slice(0, maxLines); obsLines[maxLines-1] = (obsLines[maxLines-1]||'').slice(0,-1)+'…'; }
+  if(obsLines.length > maxLines){ obsLines = obsLines.slice(0, maxLines); obsLines[maxLines-1]=(obsLines[maxLines-1]||'').slice(0,-1)+'…'; }
   doc.text(obsLines, M+10, obsTop+18, {lineHeightFactor:1.5});
 
   // Signatures
@@ -377,7 +508,27 @@ async function generateRapportPDF(){
   if(state.sigTech){ try{ doc.addImage(state.sigTech,'PNG', rightX+10, sy+18, boxW-20, boxH-26);}catch(e){} }
   if(state.nomTech){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.nomTech), rightX+8, sy+boxH+14); }
 
-  // Pied de page légal (mention obligatoire — sur chaque page)
+  // Annexes photos (une par page)
+  if(state.photos && state.photos.length){
+    const n = state.photos.length;
+    state.photos.forEach((p,i)=>{
+      doc.addPage();
+      doc.setFillColor.apply(doc, REDD); doc.roundedRect(M, 40, 172, 28, 8, 8, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255);
+      doc.text('ANNEXE PHOTO ' + (i+1) + ' / ' + n, M+86, 58, {align:'center'});
+      if(state.client){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.client), W-M, 58, {align:'right'}); }
+      const availW = W-2*M, top = 92, bottom = H-48, availH = bottom-top;
+      let iw = p.w||availW, ih = p.h||availH;
+      const s = Math.min(availW/iw, availH/ih);
+      const dw = iw*s, dh = ih*s;
+      const ix = M + (availW-dw)/2, iy = top;
+      try{ doc.addImage(p.data, 'JPEG', ix, iy, dw, dh); }catch(e){}
+      doc.setDrawColor.apply(doc, WARMB); doc.setLineWidth(0.9);
+      doc.roundedRect(ix-4, iy-4, dw+8, dh+8, 6, 6, 'S');
+    });
+  }
+
+  // Pied de page légal (mention obligatoire — sur chaque page, annexes incluses)
   drawLegalFooter(doc);
 
   const fname = 'Rapport intervention LOXAM Module - ' + ((state.client||'client').trim().replace(/[\\/:*?"<>|—–]/g,'-').replace(/\s+/g,' ').trim() || 'client') + '.pdf';

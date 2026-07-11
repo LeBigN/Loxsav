@@ -1,4 +1,4 @@
-const CACHE = 'loxsav-v1';
+const CACHE = 'loxsav-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ self.addEventListener('activate', e=>{
 self.addEventListener('fetch', e=>{
   const req = e.request;
   if(req.method !== 'GET') return;
+  if(new URL(req.url).origin !== location.origin) return; // ne pas mettre en cache les appels externes (géoloc OSM)
   e.respondWith(
     caches.match(req).then(cached => cached || fetch(req).then(res=>{
       const copy = res.clone();
