@@ -436,7 +436,9 @@ function render(){
   sgrid.append(sigCell('sigClient','Signature du client'));
   sgrid.append(sigCell('sigTech','Signature du technicien SAV'));
   sig.append(sgrid);
-  sig.append(field('Nom du technicien SAV', inp('text', state.nomTech, v=>{state.nomTech=v; save();}, 'Nom / prénom')));
+  const nomField = field('Nom du technicien SAV', inp('text', state.nomTech, v=>{state.nomTech=v; save();}, 'Nom / prénom'));
+  nomField.style.marginTop = '18px';
+  sig.append(nomField);
   root.append(sig);
 }
 
@@ -526,7 +528,7 @@ async function generateRapportPDF(){
   doc.text('Signature du technicien SAV', rightX+8, sy+14);
   if(state.sigClient){ try{ doc.addImage(state.sigClient,'PNG', leftX+10, sy+18, boxW-20, boxH-26);}catch(e){} }
   if(state.sigTech){ try{ doc.addImage(state.sigTech,'PNG', rightX+10, sy+18, boxW-20, boxH-26);}catch(e){} }
-  if(state.nomTech){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.nomTech), rightX+8, sy+boxH+14); }
+  if(state.nomTech){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor.apply(doc, SUB); doc.text(String(state.nomTech), rightX+8, sy+boxH+26); }
 
   // Annexe photos — empilées à la suite (nouvelle page si débordement)
   if(state.photos && state.photos.length){
