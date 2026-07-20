@@ -436,7 +436,7 @@ function render(){
   sgrid.append(sigCell('sigClient','Signature du client'));
   sgrid.append(sigCell('sigTech','Signature du technicien SAV'));
   sig.append(sgrid);
-  const nomField = field('Nom du technicien SAV', inp('text', state.nomTech, v=>{state.nomTech=v; save();}, 'Nom / prénom'));
+  const nomField = field('Nom du technicien', inp('text', state.nomTech, v=>{state.nomTech=v; save();}, 'Nom / prénom'));
   nomField.style.marginTop = '18px';
   sig.append(nomField);
   root.append(sig);
